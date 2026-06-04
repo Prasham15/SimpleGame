@@ -4,8 +4,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-# Pass build-time environment variable if needed, or leave it to runtime config
+# Pass build-time environment variable if needed
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
+
 
 FROM nginx:stable-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
