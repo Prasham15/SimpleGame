@@ -48,7 +48,8 @@ class StatsController(
                 "totalGames" to 0,
                 "averageScore" to 0.0,
                 "rank" to "Unranked",
-                "game" to game
+                "game" to game,
+                "countryCode" to user.countryCode
             ))
         }
 
@@ -70,7 +71,8 @@ class StatsController(
             "totalGames" to totalGames,
             "averageScore" to Math.round(averageScore * 10.0) / 10.0,
             "rank" to "#$rank",
-            "game" to game
+            "game" to game,
+            "countryCode" to user.countryCode
         ))
     }
 }

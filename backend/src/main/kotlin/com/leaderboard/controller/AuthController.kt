@@ -3,8 +3,10 @@ package com.leaderboard.controller
 import com.leaderboard.model.User
 import com.leaderboard.repository.UserRepository
 import com.leaderboard.security.SecurityUtil
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 data class RegisterRequest(
     val username: String = "",
@@ -22,7 +24,10 @@ data class LoginRequest(
 class AuthController(private val userRepository: UserRepository) {
 
     @PostMapping("/register")
-    fun register(@RequestBody request: RegisterRequest): ResponseEntity<Any> {
+    fun register(
+        @RequestBody request: RegisterRequest,
+        servletRequest: HttpServletRequest
+    ): ResponseEntity<Any> {
         val trimmedUsername = request.username.trim()
         if (trimmedUsername.length < 2 || trimmedUsername.length > 15) {
             return ResponseEntity.badRequest().body(mapOf("error" to "Username must be between 2 and 15 characters."))
@@ -39,10 +44,13 @@ class AuthController(private val userRepository: UserRepository) {
             return ResponseEntity.badRequest().body(mapOf("error" to "Username is already taken."))
         }
 
+        val country = servletRequest.getHeader("CF-IPCountry") ?: "UN"
+
         val newUser = userRepository.save(
             User(
                 username = trimmedUsername,
-                passwordHash = SecurityUtil.hashPassword(request.password)
+                passwordHash = SecurityUtil.hashPassword(request.password),
+                countryCode = country
             )
         )
 
@@ -68,6 +76,35 @@ class AuthController(private val userRepository: UserRepository) {
             "message" to "Login successful!",
             "token" to token,
             "username" to user.username
+        ))
+    }
+
+    @PostMapping("/guest")
+    fun registerGuest(servletRequest: HttpServletRequest): ResponseEntity<Any> {
+        var guestUsername: String
+        var attempts = 0
+        do {
+            val randomNum = (100000..999999).random()
+            guestUsername = "Guest$randomNum"
+            attempts++
+        } while (userRepository.findByUsername(guestUsername) != null && attempts < 10)
+
+        val country = servletRequest.getHeader("CF-IPCountry") ?: "UN"
+
+        val guestUser = userRepository.save(
+            User(
+                username = guestUsername,
+                passwordHash = SecurityUtil.hashPassword(UUID.randomUUID().toString()),
+                countryCode = country
+            )
+        )
+
+        val token = SecurityUtil.generateToken(guestUser.id!!)
+        return ResponseEntity.ok(mapOf(
+            "message" to "Guest session created successfully!",
+            "token" to token,
+            "username" to guestUser.username,
+            "countryCode" to guestUser.countryCode
         ))
     }
 }

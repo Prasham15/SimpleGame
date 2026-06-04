@@ -3,6 +3,17 @@ import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
+const getFlagEmoji = (countryCode: string) => {
+  if (!countryCode || countryCode === 'UN' || countryCode === 'unknown') {
+    return '🌍'
+  }
+  const codePoints = countryCode
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0))
+  return String.fromCodePoint(...codePoints)
+}
+
 interface StatusResponse {
   status: string
   message: string
@@ -14,6 +25,7 @@ interface ScoreEntry {
   score: number
   createdAt: string
   game: string
+  countryCode: string
 }
 
 interface PersonalStats {
@@ -42,7 +54,9 @@ function App() {
   // Auth state
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('token'))
   const [currentUser, setCurrentUser] = useState<string | null>(localStorage.getItem('username'))
+  const [userCountry, setUserCountry] = useState<string | null>(localStorage.getItem('countryCode'))
   const [authMode, setAuthMode] = useState<AuthMode>('login')
+  const [loadingGuest, setLoadingGuest] = useState<boolean>(false)
   const [authUsername, setAuthUsername] = useState<string>('')
   const [authPassword, setAuthPassword] = useState<string>('')
   const [authError, setAuthError] = useState<string | null>(null)
@@ -126,8 +140,12 @@ function App() {
         if (!res.ok) throw new Error()
         return res.json()
       })
-      .then((data: PersonalStats) => {
+      .then((data: PersonalStats & { countryCode?: string }) => {
         setStats(data)
+        if (data.countryCode) {
+          setUserCountry(data.countryCode)
+          localStorage.setItem('countryCode', data.countryCode)
+        }
       })
       .catch(() => {
         setStats(null)
@@ -475,11 +493,39 @@ function App() {
       })
   }
 
+  const handleGuestPlay = () => {
+    setLoadingGuest(true)
+    setAuthError(null)
+    fetch(`${API_URL}/api/auth/guest`, {
+      method: 'POST'
+    })
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to start guest session')
+        return data
+      })
+      .then((data) => {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('username', data.username)
+        localStorage.setItem('countryCode', data.countryCode)
+        setAuthToken(data.token)
+        setCurrentUser(data.username)
+        setUserCountry(data.countryCode)
+        setLoadingGuest(false)
+      })
+      .catch((err) => {
+        setAuthError(err.message || 'Error starting guest session.')
+        setLoadingGuest(false)
+      })
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
+    localStorage.removeItem('countryCode')
     setAuthToken(null)
     setCurrentUser(null)
+    setUserCountry(null)
     setStats(null)
     setGameState('idle')
     if (runnerAnimationFrameRef.current) {
@@ -664,6 +710,22 @@ function App() {
                 <button type="submit" className="btn-primary auth-submit-btn">
                   {authMode === 'login' ? 'ENTER GAME' : 'CREATE ACCOUNT'}
                 </button>
+
+                <div className="auth-divider">
+                  <span className="divider-line"></span>
+                  <span className="divider-text">OR</span>
+                  <span className="divider-line"></span>
+                </div>
+
+                <button 
+                  type="button" 
+                  className="btn-secondary-action auth-guest-btn" 
+                  onClick={handleGuestPlay}
+                  disabled={loadingGuest}
+                  style={{ width: '100%', marginTop: '10px' }}
+                >
+                  {loadingGuest ? 'CREATING GUEST SESSION...' : '⚡ PLAY AS GUEST'}
+                </button>
               </form>
             </div>
           ) : (
@@ -671,7 +733,10 @@ function App() {
             <div className="game-wrapper">
               
               <div className="user-profile-bar">
-                <span>⚡ Speeder: <strong className="user-glow">{currentUser}</strong></span>
+                <span>
+                  ⚡ Speeder: {userCountry && <span className="profile-flag" title={userCountry} style={{ marginRight: '6px' }}>{getFlagEmoji(userCountry)}</span>}
+                  <strong className="user-glow">{currentUser}</strong>
+                </span>
                 <button className="btn-logout" onClick={handleLogout}>LOGOUT</button>
               </div>
 
@@ -823,7 +888,10 @@ function App() {
                   <div key={entry.id} className={`leaderboard-item rank-${index + 1}`}>
                     <div className="rank-badge">{index + 1}</div>
                     <div className="user-details">
-                      <span className="username">{entry.username}</span>
+                      <span className="username">
+                        <span className="leaderboard-flag" title={entry.countryCode} style={{ marginRight: '6px' }}>{getFlagEmoji(entry.countryCode)}</span>
+                        {entry.username}
+                      </span>
                       <span className="date">{formatDate(entry.createdAt)}</span>
                     </div>
                     <div className="score-val">{entry.score}</div>

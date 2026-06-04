@@ -15,5 +15,8 @@ class User(
 
     @JsonIgnore
     @Column(nullable = false, name = "password_hash")
-    var passwordHash: String = ""
+    var passwordHash: String = "",
+
+    @Column(nullable = false, name = "country_code", columnDefinition = "varchar(5) default 'UN'")
+    var countryCode: String = "UN"
 )

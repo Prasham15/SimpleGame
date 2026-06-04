@@ -24,7 +24,8 @@ class LeaderboardController(private val scoreRepository: ScoreRepository) {
                 "username" to (score.user?.username ?: "unknown"),
                 "score" to score.score,
                 "createdAt" to score.createdAt,
-                "game" to score.game
+                "game" to score.game,
+                "countryCode" to (score.user?.countryCode ?: "UN")
             )
         }
         return ResponseEntity.ok(mappedScores)
