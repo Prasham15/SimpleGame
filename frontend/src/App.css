@@ -1,8 +1,19 @@
-/* Glassmorphism styling with dark theme and neon glow */
+/* Global box-sizing reset and touch prevention */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background: radial-gradient(circle at center, #1e1b29 0%, #0d0b11 100%) !important;
   min-height: 100vh;
-  margin: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -54,6 +65,21 @@ body {
 }
 
 @media (max-width: 600px) {
+  .app-container {
+    padding: 10px;
+  }
+  .glass-card {
+    padding: 20px 15px;
+    border-radius: 12px;
+  }
+  .game-wrapper {
+    padding: 15px;
+    min-height: auto;
+  }
+  .auth-wrapper {
+    padding: 20px 15px;
+    min-height: auto;
+  }
   .system-status {
     position: relative;
     justify-content: center;
@@ -527,6 +553,7 @@ body {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  min-width: 0;
 }
 
 .user-details .username {
@@ -534,6 +561,9 @@ body {
   font-size: 14px;
   font-weight: 600;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-details .date {
@@ -786,9 +816,18 @@ body {
   gap: 12px;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 380px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .stats-box {
+    padding: 8px;
   }
 }
 
