@@ -15,6 +15,12 @@ function App() {
   const [timeLeft, setTimeLeft] = useState<number>(30)
   const [targetPosition, setTargetPosition] = useState<{ x: number; y: number }>({ x: 50, y: 50 })
   
+  // Phase 2: User registration/submission state
+  const [username, setUsername] = useState<string>('')
+  const [submitting, setSubmitting] = useState<boolean>(false)
+  const [submitted, setSubmitted] = useState<boolean>(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const timerRef = useRef<number | null>(null)
   const gameAreaRef = useRef<HTMLDivElement | null>(null)
 
@@ -48,6 +54,8 @@ function App() {
   const startGame = () => {
     setScore(0)
     setTimeLeft(30)
+    setSubmitted(false)
+    setSubmitError(null)
     setGameState('playing')
     // Wait a brief moment to ensure ref is attached
     setTimeout(moveTarget, 50)
@@ -56,7 +64,6 @@ function App() {
   const moveTarget = () => {
     if (!gameAreaRef.current) return
     const rect = gameAreaRef.current.getBoundingClientRect()
-    // Target is 60px wide/high. Give padding so it stays inside
     const maxX = rect.width - 80
     const maxY = rect.height - 80
     const randomX = Math.max(10, Math.floor(Math.random() * maxX))
@@ -68,6 +75,40 @@ function App() {
     if (gameState !== 'playing') return
     setScore((prev) => prev + 1)
     moveTarget()
+  }
+
+  const handleSubmitScore = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username.trim()) return
+
+    setSubmitting(true)
+    setSubmitError(null)
+
+    fetch('http://localhost:8080/score', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username.trim(),
+        score: score
+      })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Failed to submit score')
+        }
+        return res.json()
+      })
+      .then(() => {
+        setSubmitted(true)
+        setSubmitting(false)
+      })
+      .catch((err) => {
+        setSubmitError(err.message || 'Error submitting score. Please try again.')
+        setSubmitting(false)
+      })
   }
 
   return (
@@ -137,10 +178,34 @@ function App() {
               <p className="final-score-text">
                 You scored <span className="final-score">{score}</span> taps!
               </p>
-              <div className="score-evaluation">
-                {score < 15 ? '🐢 Warm up those fingers!' : score < 30 ? '⚡ Decent speed!' : '🔥 Fast as lightning!'}
-              </div>
-              <button className="btn-primary" onClick={startGame}>
+              
+              {!submitted ? (
+                <form className="score-form" onSubmit={handleSubmitScore}>
+                  <h3>Submit your score to Leaderboard</h3>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="input-username"
+                      placeholder="Enter username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.slice(0, 15))}
+                      maxLength={15}
+                      required
+                      disabled={submitting}
+                    />
+                    <button type="submit" className="btn-submit" disabled={submitting || !username.trim()}>
+                      {submitting ? 'SUBMITTING...' : 'SUBMIT SCORE'}
+                    </button>
+                  </div>
+                  {submitError && <p className="error-text-form">{submitError}</p>}
+                </form>
+              ) : (
+                <div className="submit-success">
+                  <p>🎉 Score submitted successfully!</p>
+                </div>
+              )}
+
+              <button className="btn-primary" style={{ marginTop: '15px' }} onClick={startGame}>
                 PLAY AGAIN
               </button>
             </div>
