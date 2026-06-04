@@ -394,3 +394,188 @@ body {
   font-weight: 600;
   font-size: 14px;
 }
+
+/* Dual column layout */
+.glass-card.main-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 30px;
+  max-width: 1000px;
+}
+
+@media (max-width: 900px) {
+  .glass-card.main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.game-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.leaderboard-section {
+  background: rgba(17, 12, 28, 0.4);
+  border: 1px solid rgba(192, 132, 252, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  min-height: 480px;
+}
+
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(192, 132, 252, 0.15);
+  padding-bottom: 10px;
+}
+
+.leaderboard-header h3 {
+  font-size: 16px;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
+}
+
+.btn-refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.btn-refresh:hover {
+  transform: rotate(180deg);
+}
+
+.leaderboard-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: 420px;
+  padding-right: 5px;
+}
+
+/* Custom Scrollbar */
+.leaderboard-list-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.leaderboard-list-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.leaderboard-list-container::-webkit-scrollbar-thumb {
+  background: rgba(192, 132, 252, 0.2);
+  border-radius: 10px;
+}
+
+.leaderboard-loader,
+.leaderboard-empty {
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  padding: 40px 10px;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  background: rgba(25, 22, 38, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-item:hover {
+  transform: scale(1.02);
+  border-color: rgba(192, 132, 252, 0.2);
+  background: rgba(25, 22, 38, 0.6);
+}
+
+.rank-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  margin-right: 12px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.user-details .username {
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.user-details .date {
+  color: #64748b;
+  font-size: 10px;
+  text-align: left;
+}
+
+.score-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* Rank Highlights */
+.rank-1 {
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.05);
+}
+.rank-1 .rank-badge {
+  background: #fbbf24;
+  color: #0b0910;
+}
+.rank-1 .score-val {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
+.rank-2 {
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  background: rgba(226, 232, 240, 0.05);
+}
+.rank-2 .rank-badge {
+  background: #cbd5e1;
+  color: #0b0910;
+}
+
+.rank-3 {
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  background: rgba(217, 119, 6, 0.05);
+}
+.rank-3 .rank-badge {
+  background: #d97706;
+  color: #0b0910;
+}
