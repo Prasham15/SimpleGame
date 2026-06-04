@@ -14,6 +14,7 @@ interface ScoreEntry {
 }
 
 type GameState = 'idle' | 'playing' | 'gameover'
+type AuthMode = 'login' | 'register'
 
 function App() {
   const [backendStatus, setBackendStatus] = useState<StatusResponse | null>(null)
@@ -22,8 +23,16 @@ function App() {
   const [timeLeft, setTimeLeft] = useState<number>(30)
   const [targetPosition, setTargetPosition] = useState<{ x: number; y: number }>({ x: 50, y: 50 })
   
+  // Auth state
+  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('token'))
+  const [currentUser, setCurrentUser] = useState<string | null>(localStorage.getItem('username'))
+  const [authMode, setAuthMode] = useState<AuthMode>('login')
+  const [authUsername, setAuthUsername] = useState<string>('')
+  const [authPassword, setAuthPassword] = useState<string>('')
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null)
+
   // Score submission state
-  const [username, setUsername] = useState<string>('')
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [submitted, setSubmitted] = useState<boolean>(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -104,9 +113,61 @@ function App() {
     moveTarget()
   }
 
-  const handleSubmitScore = (e: React.FormEvent) => {
+  const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!username.trim()) return
+    setAuthError(null)
+    setAuthSuccess(null)
+
+    const url = authMode === 'register' 
+      ? 'http://localhost:8080/api/auth/register' 
+      : 'http://localhost:8080/api/auth/login'
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: authUsername.trim(),
+        password: authPassword
+      })
+    })
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || 'Authentication failed')
+        }
+        return data
+      })
+      .then((data) => {
+        if (authMode === 'register') {
+          setAuthSuccess('Registration successful! Please login.')
+          setAuthMode('login')
+          setAuthPassword('')
+        } else {
+          localStorage.setItem('token', data.token)
+          localStorage.setItem('username', data.username)
+          setAuthToken(data.token)
+          setCurrentUser(data.username)
+          setAuthUsername('')
+          setAuthPassword('')
+        }
+      })
+      .catch((err) => {
+        setAuthError(err.message || 'An error occurred during authentication.')
+      })
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    setAuthToken(null)
+    setCurrentUser(null)
+    setGameState('idle')
+  }
+
+  const handleSubmitScore = () => {
+    if (!authToken) return
 
     setSubmitting(true)
     setSubmitError(null)
@@ -114,10 +175,10 @@ function App() {
     fetch('http://localhost:8080/score', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
       },
       body: JSON.stringify({
-        username: username.trim(),
         score: score
       })
     })
@@ -157,7 +218,7 @@ function App() {
     <div className="app-container">
       <div className="glass-card main-layout">
         
-        {/* Left Side: Game Area */}
+        {/* Left Side: Game Section or Auth Forms */}
         <div className="game-section">
           {/* Header containing status badge and title */}
           <div className="game-header">
@@ -177,84 +238,143 @@ function App() {
             <p className="subtitle">Tap the glowing cores before time runs out!</p>
           </div>
 
-          {/* Game Interface */}
-          <div className="game-wrapper">
-            {gameState === 'idle' && (
-              <div className="game-screen-center">
-                <div className="intro-icon">🎯</div>
-                <h2>Ready to test your speed?</h2>
-                <p>You have 30 seconds to tap the target as many times as possible. Each tap moves the target.</p>
-                <button className="btn-primary" onClick={startGame}>
-                  START GAME
+          {/* If not logged in, show login/register forms */}
+          {!authToken ? (
+            <div className="auth-wrapper">
+              <div className="auth-tabs">
+                <button 
+                  className={`auth-tab-btn ${authMode === 'login' ? 'active' : ''}`}
+                  onClick={() => { setAuthMode('login'); setAuthError(null); setAuthSuccess(null); }}
+                >
+                  LOGIN
+                </button>
+                <button 
+                  className={`auth-tab-btn ${authMode === 'register' ? 'active' : ''}`}
+                  onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccess(null); }}
+                >
+                  REGISTER
                 </button>
               </div>
-            )}
 
-            {gameState === 'playing' && (
-              <div className="game-screen-play">
-                <div className="hud">
-                  <div className="hud-item">
-                    <span className="hud-label">TIME LEFT</span>
-                    <span className="hud-val highlight">{timeLeft}s</span>
-                  </div>
-                  <div className="hud-item">
-                    <span className="hud-label">SCORE</span>
-                    <span className="hud-val">{score}</span>
-                  </div>
+              <form className="auth-form" onSubmit={handleAuthSubmit}>
+                <h2>{authMode === 'login' ? 'Welcome Back Speeder' : 'Create Speeder Account'}</h2>
+                <p className="auth-desc">
+                  {authMode === 'login' 
+                    ? 'Login to compete globally and track your scores.' 
+                    : 'Sign up to start saving your click speed achievements.'}
+                </p>
+
+                {authError && <div className="auth-alert error">{authError}</div>}
+                {authSuccess && <div className="auth-alert success">{authSuccess}</div>}
+
+                <div className="auth-input-group">
+                  <label htmlFor="auth-user">Username</label>
+                  <input
+                    id="auth-user"
+                    type="text"
+                    className="input-field"
+                    placeholder="Alphanumeric, 2-15 chars"
+                    value={authUsername}
+                    onChange={(e) => setAuthUsername(e.target.value)}
+                    required
+                  />
                 </div>
-                <div className="game-area" ref={gameAreaRef}>
-                  <button
-                    className="game-target"
-                    style={{ left: `${targetPosition.x}px`, top: `${targetPosition.y}px` }}
-                    onClick={handleTargetClick}
-                    aria-label="Click target"
-                  >
-                    <span className="core-glow"></span>
+
+                <div className="auth-input-group">
+                  <label htmlFor="auth-pass">Password</label>
+                  <input
+                    id="auth-pass"
+                    type="password"
+                    className="input-field"
+                    placeholder="Min 4 characters"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary auth-submit-btn">
+                  {authMode === 'login' ? 'ENTER GAME' : 'CREATE ACCOUNT'}
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* Game Interface for Logged-in Users */
+            <div className="game-wrapper">
+              
+              <div className="user-profile-bar">
+                <span>⚡ Active Speeder: <strong className="user-glow">{currentUser}</strong></span>
+                <button className="btn-logout" onClick={handleLogout}>LOGOUT</button>
+              </div>
+
+              {gameState === 'idle' && (
+                <div className="game-screen-center">
+                  <div className="intro-icon">🎯</div>
+                  <h2>Ready to test your speed?</h2>
+                  <p>You have 30 seconds to tap the target as many times as possible. Each tap moves the target.</p>
+                  <button className="btn-primary" onClick={startGame}>
+                    START GAME
                   </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {gameState === 'gameover' && (
-              <div className="game-screen-center">
-                <div className="intro-icon">🏆</div>
-                <h2>Game Over!</h2>
-                <p className="final-score-text">
-                  You scored <span className="final-score">{score}</span> taps!
-                </p>
-                
-                {!submitted ? (
-                  <form className="score-form" onSubmit={handleSubmitScore}>
-                    <h3>Submit your score to Leaderboard</h3>
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="input-username"
-                        placeholder="Enter username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value.slice(0, 15))}
-                        maxLength={15}
-                        required
-                        disabled={submitting}
-                      />
-                      <button type="submit" className="btn-submit" disabled={submitting || !username.trim()}>
-                        {submitting ? 'SUBMITTING...' : 'SUBMIT'}
-                      </button>
+              {gameState === 'playing' && (
+                <div className="game-screen-play">
+                  <div className="hud">
+                    <div className="hud-item">
+                      <span className="hud-label">TIME LEFT</span>
+                      <span className="hud-val highlight">{timeLeft}s</span>
                     </div>
-                    {submitError && <p className="error-text-form">{submitError}</p>}
-                  </form>
-                ) : (
-                  <div className="submit-success">
-                    <p>🎉 Score submitted successfully!</p>
+                    <div className="hud-item">
+                      <span className="hud-label">SCORE</span>
+                      <span className="hud-val">{score}</span>
+                    </div>
                   </div>
-                )}
+                  <div className="game-area" ref={gameAreaRef}>
+                    <button
+                      className="game-target"
+                      style={{ left: `${targetPosition.x}px`, top: `${targetPosition.y}px` }}
+                      onClick={handleTargetClick}
+                      aria-label="Click target"
+                    >
+                      <span className="core-glow"></span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                <button className="btn-primary" style={{ marginTop: '15px' }} onClick={startGame}>
-                  PLAY AGAIN
-                </button>
-              </div>
-            )}
-          </div>
+              {gameState === 'gameover' && (
+                <div className="game-screen-center">
+                  <div className="intro-icon">🏆</div>
+                  <h2>Game Over!</h2>
+                  <p className="final-score-text">
+                    You scored <span className="final-score">{score}</span> taps!
+                  </p>
+                  
+                  {!submitted ? (
+                    <div className="score-form-container">
+                      <button 
+                        className="btn-primary btn-save-score" 
+                        onClick={handleSubmitScore} 
+                        disabled={submitting}
+                      >
+                        {submitting ? 'SAVING...' : 'SAVE SCORE TO LEADERBOARD'}
+                      </button>
+                      {submitError && <p className="error-text-form">{submitError}</p>}
+                    </div>
+                  ) : (
+                    <div className="submit-success">
+                      <p>🎉 Score saved to Global Leaderboard!</p>
+                    </div>
+                  )}
+
+                  <button className="btn-secondary-action" onClick={startGame}>
+                    PLAY AGAIN
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Side: Global Leaderboard */}

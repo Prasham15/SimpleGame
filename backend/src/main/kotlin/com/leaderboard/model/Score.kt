@@ -10,8 +10,9 @@ class Score(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 
-    @Column(nullable = false)
-    var username: String = "",
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", nullable = false)
+    var user: User? = null,
 
     @Column(nullable = false)
     var score: Int = 0,

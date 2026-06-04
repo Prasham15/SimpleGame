@@ -1,6 +1,5 @@
 package com.leaderboard.controller
 
-import com.leaderboard.model.Score
 import com.leaderboard.repository.ScoreRepository
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CrossOrigin
@@ -14,8 +13,16 @@ import org.springframework.web.bind.annotation.RestController
 class LeaderboardController(private val scoreRepository: ScoreRepository) {
 
     @GetMapping
-    fun getLeaderboard(): ResponseEntity<List<Score>> {
+    fun getLeaderboard(): ResponseEntity<List<Map<String, Any>>> {
         val top100 = scoreRepository.findTop100ByOrderByScoreDescCreatedAtAsc()
-        return ResponseEntity.ok(top100)
+        val mappedScores = top100.map { score ->
+            mapOf(
+                "id" to (score.id ?: 0L),
+                "username" to (score.user?.username ?: "unknown"),
+                "score" to score.score,
+                "createdAt" to score.createdAt
+            )
+        }
+        return ResponseEntity.ok(mappedScores)
     }
 }
