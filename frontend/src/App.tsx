@@ -53,7 +53,6 @@ function App() {
 
   // Personal Stats state
   const [stats, setStats] = useState<PersonalStats | null>(null)
-  const [loadingStats, setLoadingStats] = useState<boolean>(false)
 
   const timerRef = useRef<number | null>(null)
   const gameAreaRef = useRef<HTMLDivElement | null>(null)
@@ -88,7 +87,6 @@ function App() {
   }
 
   const fetchPersonalStats = (token: string) => {
-    setLoadingStats(true)
     fetch(`${API_URL}/api/stats`, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -100,11 +98,9 @@ function App() {
       })
       .then((data: PersonalStats) => {
         setStats(data)
-        setLoadingStats(false)
       })
       .catch(() => {
         setStats(null)
-        setLoadingStats(false)
       })
   }
 
