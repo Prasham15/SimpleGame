@@ -13,6 +13,14 @@ interface ScoreEntry {
   createdAt: string
 }
 
+interface PersonalStats {
+  username: string
+  bestScore: number
+  totalGames: number
+  averageScore: number
+  rank: string
+}
+
 type GameState = 'idle' | 'playing' | 'gameover'
 type AuthMode = 'login' | 'register'
 
@@ -41,6 +49,10 @@ function App() {
   const [leaderboard, setLeaderboard] = useState<ScoreEntry[]>([])
   const [loadingLeaderboard, setLoadingLeaderboard] = useState<boolean>(true)
 
+  // Personal Stats state
+  const [stats, setStats] = useState<PersonalStats | null>(null)
+  const [loadingStats, setLoadingStats] = useState<boolean>(false)
+
   const timerRef = useRef<number | null>(null)
   const gameAreaRef = useRef<HTMLDivElement | null>(null)
 
@@ -53,7 +65,12 @@ function App() {
 
     // Fetch leaderboard
     fetchLeaderboard()
-  }, [])
+
+    // Fetch stats if already logged in
+    if (authToken) {
+      fetchPersonalStats(authToken)
+    }
+  }, [authToken])
 
   const fetchLeaderboard = () => {
     setLoadingLeaderboard(true)
@@ -65,6 +82,27 @@ function App() {
       })
       .catch(() => {
         setLoadingLeaderboard(false)
+      })
+  }
+
+  const fetchPersonalStats = (token: string) => {
+    setLoadingStats(true)
+    fetch('http://localhost:8080/api/stats', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error()
+        return res.json()
+      })
+      .then((data: PersonalStats) => {
+        setStats(data)
+        setLoadingStats(false)
+      })
+      .catch(() => {
+        setStats(null)
+        setLoadingStats(false)
       })
   }
 
@@ -163,6 +201,7 @@ function App() {
     localStorage.removeItem('username')
     setAuthToken(null)
     setCurrentUser(null)
+    setStats(null)
     setGameState('idle')
   }
 
@@ -193,6 +232,7 @@ function App() {
         setSubmitted(true)
         setSubmitting(false)
         fetchLeaderboard() // Refresh the leaderboard instantly
+        fetchPersonalStats(authToken) // Refresh personal stats instantly
       })
       .catch((err) => {
         setSubmitError(err.message || 'Error submitting score. Please try again.')
@@ -309,7 +349,32 @@ function App() {
 
               {gameState === 'idle' && (
                 <div className="game-screen-center">
-                  <div className="intro-icon">🎯</div>
+                  
+                  {/* Personal Stats Dashboard */}
+                  {stats && (
+                    <div className="stats-dashboard">
+                      <div className="stats-grid">
+                        <div className="stats-box">
+                          <span className="stats-label">GLOBAL RANK</span>
+                          <span className="stats-val rank-highlight">{stats.rank}</span>
+                        </div>
+                        <div className="stats-box">
+                          <span className="stats-label">PERSONAL BEST</span>
+                          <span className="stats-val">{stats.bestScore}</span>
+                        </div>
+                        <div className="stats-box">
+                          <span className="stats-label">GAMES PLAYED</span>
+                          <span className="stats-val">{stats.totalGames}</span>
+                        </div>
+                        <div className="stats-box">
+                          <span className="stats-label">AVG SCORE</span>
+                          <span className="stats-val">{stats.averageScore}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="intro-icon" style={{ marginTop: stats ? '15px' : '30px' }}>🎯</div>
                   <h2>Ready to test your speed?</h2>
                   <p>You have 30 seconds to tap the target as many times as possible. Each tap moves the target.</p>
                   <button className="btn-primary" onClick={startGame}>
