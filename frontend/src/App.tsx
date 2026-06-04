@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+
 interface StatusResponse {
   status: string
   message: string
@@ -58,7 +60,7 @@ function App() {
 
   useEffect(() => {
     // Check status
-    fetch('http://localhost:8080/api/status')
+    fetch(`${API_URL}/api/status`)
       .then((res) => res.json())
       .then((data: StatusResponse) => setBackendStatus(data))
       .catch(() => setBackendStatus(null))
@@ -74,7 +76,7 @@ function App() {
 
   const fetchLeaderboard = () => {
     setLoadingLeaderboard(true)
-    fetch('http://localhost:8080/leaderboard')
+    fetch(`${API_URL}/leaderboard`)
       .then((res) => res.json())
       .then((data: ScoreEntry[]) => {
         setLeaderboard(data)
@@ -87,7 +89,7 @@ function App() {
 
   const fetchPersonalStats = (token: string) => {
     setLoadingStats(true)
-    fetch('http://localhost:8080/api/stats', {
+    fetch(`${API_URL}/api/stats`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -157,8 +159,8 @@ function App() {
     setAuthSuccess(null)
 
     const url = authMode === 'register' 
-      ? 'http://localhost:8080/api/auth/register' 
-      : 'http://localhost:8080/api/auth/login'
+      ? `${API_URL}/api/auth/register` 
+      : `${API_URL}/api/auth/login`
 
     fetch(url, {
       method: 'POST',
@@ -211,7 +213,7 @@ function App() {
     setSubmitting(true)
     setSubmitError(null)
 
-    fetch('http://localhost:8080/score', {
+    fetch(`${API_URL}/score`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
